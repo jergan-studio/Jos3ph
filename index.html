@@ -7,22 +7,35 @@
 </head>
 <body>
 
-<header>🧩 Jos3ph</header>
+<header>
+  🧩 Jos3ph
+  <input id="user" placeholder="username">
+  <button onclick="login()">Login</button>
+</header>
 
 <div id="container">
   <div id="blocklyDiv"></div>
 
   <div id="stage">
     <canvas id="canvas" width="300" height="300"></canvas>
-    <button onclick="runCode()">▶ Run</button>
-    <button onclick="saveProject()">💾 Save</button>
-    <button onclick="shareProject()">🔗 Share</button>
+
+    <button onclick="run()">▶ Run</button>
+    <button onclick="saveCloud()">☁ Save</button>
+    <button onclick="share()">🔗 Share</button>
+    <button onclick="exportJS()">JS</button>
+    <button onclick="exportLua()">Lua</button>
   </div>
 </div>
 
 <xml id="toolbox" style="display:none">
-  <category name="Motion" colour="210">
-    <block type="move_sprite"></block>
+  <category name="Sprites" colour="210">
+    <block type="select_sprite"></block>
+    <block type="move"></block>
+    <block type="set_color"></block>
+  </category>
+
+  <category name="Sound" colour="290">
+    <block type="play_sound"></block>
   </category>
 </xml>
 
