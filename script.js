@@ -1,70 +1,127 @@
-const workspace = Blockly.inject('blocklyDiv', {
-  toolbox: document.getElementById('toolbox')
+let currentUser = null;
+
+function login() {
+  currentUser = document.getElementById("user").value;
+  alert("Logged in as " + currentUser);
+}
+
+const workspace = Blockly.inject("blocklyDiv", {
+  toolbox: document.getElementById("toolbox")
 });
 
-// Sprite
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-let x = 150, y = 150;
 
-function drawSprite() {
+// SPRITES
+let sprites = {
+  cat: { x: 140, y: 140, color: "orange" },
+  box: { x: 50, y: 50, color: "blue" }
+};
+
+let currentSprite = "cat";
+
+function draw() {
   ctx.clearRect(0,0,300,300);
-  ctx.fillStyle = "orange";
-  ctx.fillRect(x, y, 30, 30);
+  for (let s in sprites) {
+    ctx.fillStyle = sprites[s].color;
+    ctx.fillRect(sprites[s].x, sprites[s].y, 30, 30);
+  }
 }
-drawSprite();
+draw();
 
-// Custom block
+// BLOCKS
 Blockly.defineBlocksWithJsonArray([
   {
-    "type": "move_sprite",
-    "message0": "move sprite %1 steps",
-    "args0": [{ "type": "field_number", "name": "STEPS", "value": 10 }],
-    "previousStatement": null,
-    "nextStatement": null,
-    "colour": 210
+    "type":"select_sprite",
+    "message0":"select sprite %1",
+    "args0":[{
+      "type":"field_dropdown",
+      "name":"SPRITE",
+      "options":[["cat","cat"],["box","box"]]
+    }],
+    "previousStatement":null,
+    "nextStatement":null,
+    "colour":210
+  },
+  {
+    "type":"move",
+    "message0":"move %1 steps",
+    "args0":[{"type":"field_number","name":"STEPS","value":10}],
+    "previousStatement":null,
+    "nextStatement":null,
+    "colour":210
+  },
+  {
+    "type":"set_color",
+    "message0":"set color %1",
+    "args0":[{
+      "type":"field_colour",
+      "name":"COLOR",
+      "colour":"#ff8800"
+    }],
+    "previousStatement":null,
+    "nextStatement":null,
+    "colour":210
+  },
+  {
+    "type":"play_sound",
+    "message0":"play sound",
+    "previousStatement":null,
+    "nextStatement":null,
+    "colour":290
   }
 ]);
 
-Blockly.JavaScript.forBlock["move_sprite"] = function(block) {
-  const steps = block.getFieldValue("STEPS");
-  return `x += ${steps}; drawSprite();\n`;
-};
+Blockly.JavaScript.forBlock.select_sprite = b =>
+  `currentSprite="${b.getFieldValue("SPRITE")}";\n`;
 
-function runCode() {
-  const code = Blockly.JavaScript.workspaceToCode(workspace);
-  eval(code);
+Blockly.JavaScript.forBlock.move = b =>
+  `sprites[currentSprite].x+=${b.getFieldValue("STEPS")};draw();\n`;
+
+Blockly.JavaScript.forBlock.set_color = b =>
+  `sprites[currentSprite].color="${b.getFieldValue("COLOR")}";draw();\n`;
+
+Blockly.JavaScript.forBlock.play_sound = () =>
+  `new AudioContext().createOscillator().start();\n`;
+
+function run() {
+  eval(Blockly.JavaScript.workspaceToCode(workspace));
 }
 
-// SAVE
-function saveProject() {
-  const xml = Blockly.Xml.workspaceToDom(workspace);
-  const text = Blockly.Xml.domToText(xml);
-  localStorage.setItem("jos3ph_project", text);
-  alert("Saved!");
+// ☁ CLOUD SAVE
+function saveCloud() {
+  if (!currentUser) return alert("Login first");
+  const xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+  localStorage.setItem("jos3ph_" + currentUser, xml);
+  alert("Saved to cloud");
 }
 
-// LOAD
-function loadProject(text) {
-  workspace.clear();
-  const xml = Blockly.Xml.textToDom(text);
-  Blockly.Xml.domToWorkspace(xml, workspace);
-}
-
-// SHARE
-function shareProject() {
-  const xml = Blockly.Xml.workspaceToDom(workspace);
-  const text = Blockly.Xml.domToText(xml);
-  const encoded = btoa(text);
-  const url = location.origin + location.pathname + "?project=" + encoded;
+// 🔗 SHARE
+function share() {
+  const xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+  const url = location.origin + "?p=" + btoa(xml);
   navigator.clipboard.writeText(url);
-  alert("Share link copied!");
+  alert("Link copied");
 }
 
-// Load from URL
-const params = new URLSearchParams(location.search);
-if (params.get("project")) {
-  loadProject(atob(params.get("project")));
-} else if (localStorage.getItem("jos3ph_project")) {
-  loadProject(localStorage.getItem("jos3ph_project"));
+// EXPORT
+function exportJS() {
+  alert(Blockly.JavaScript.workspaceToCode(workspace));
+}
+
+function exportLua() {
+  const js = Blockly.JavaScript.workspaceToCode(workspace);
+  const lua = js
+    .replace("sprites[currentSprite].x+=", "sprites[currentSprite].x = sprites[currentSprite].x + ")
+    .replace(/;/g,"");
+  alert(lua);
+}
+
+// LOAD SHARE
+const p = new URLSearchParams(location.search).get("p");
+if (p) {
+  Blockly.Xml.domToWorkspace(
+    Blockly.Xml.textToDom(atob(p)),
+    workspace
+  );
 }
