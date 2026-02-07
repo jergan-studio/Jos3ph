@@ -1,125 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>Jos3ph</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      height: 100vh;
-      background: #1e1e1e;
-      color: white;
-    }
-
-    .panel {
-      padding: 10px;
-      box-sizing: border-box;
-    }
-
-    #blocks {
-      width: 20%;
-      background: #2a2a2a;
-    }
-
-    #workspace {
-      width: 50%;
-      background: #111;
-      border-left: 2px solid #333;
-      border-right: 2px solid #333;
-    }
-
-    #preview {
-      width: 30%;
-      background: #000;
-    }
-
-    .block {
-      background: #ffcc00;
-      color: black;
-      padding: 8px;
-      margin-bottom: 8px;
-      cursor: grab;
-      border-radius: 6px;
-    }
-
-    #dropzone {
-      min-height: 90%;
-      border: 2px dashed #555;
-      padding: 10px;
-    }
-
-    button {
-      padding: 10px;
-      margin-top: 10px;
-      width: 100%;
-      background: #00ffaa;
-      border: none;
-      cursor: pointer;
-    }
-  </style>
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div id="blocks" class="panel">
-    <h3>Blocks</h3>
-    <div class="block" draggable="true" data-action="move">Move 10</div>
-    <div class="block" draggable="true" data-action="say">Say Hello</div>
+<header>🧩 Jos3ph</header>
+
+<div id="container">
+  <div id="blocklyDiv"></div>
+
+  <div id="stage">
+    <canvas id="canvas" width="300" height="300"></canvas>
+    <button onclick="runCode()">▶ Run</button>
+    <button onclick="saveProject()">💾 Save</button>
+    <button onclick="shareProject()">🔗 Share</button>
   </div>
+</div>
 
-  <div id="workspace" class="panel">
-    <h3>Workspace</h3>
-    <div id="dropzone"></div>
-    <button onclick="run()">Run</button>
-  </div>
+<xml id="toolbox" style="display:none">
+  <category name="Motion" colour="210">
+    <block type="move_sprite"></block>
+  </category>
+</xml>
 
-  <div id="preview" class="panel">
-    <h3>Preview</h3>
-    <p id="output"></p>
-  </div>
-
-<script>
-  const blocks = document.querySelectorAll('.block');
-  const dropzone = document.getElementById('dropzone');
-  const output = document.getElementById('output');
-
-  blocks.forEach(block => {
-    block.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('action', block.dataset.action);
-      e.dataTransfer.setData('text', block.innerText);
-    });
-  });
-
-  dropzone.addEventListener('dragover', e => e.preventDefault());
-
-  dropzone.addEventListener('drop', e => {
-    e.preventDefault();
-    const text = e.dataTransfer.getData('text');
-    const action = e.dataTransfer.getData('action');
-
-    const el = document.createElement('div');
-    el.className = 'block';
-    el.dataset.action = action;
-    el.innerText = text;
-
-    dropzone.appendChild(el);
-  });
-
-  function run() {
-    output.innerText = "";
-    const blocks = dropzone.querySelectorAll('.block');
-
-    blocks.forEach(block => {
-      if (block.dataset.action === "move") {
-        output.innerText += "Moved 10 steps\n";
-      }
-      if (block.dataset.action === "say") {
-        output.innerText += "Hello!\n";
-      }
-    });
-  }
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
