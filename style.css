@@ -1,0 +1,33 @@
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #1e1e1e;
+  color: white;
+}
+
+header {
+  background: #ffab19;
+  padding: 10px;
+  font-size: 20px;
+}
+
+#container {
+  display: flex;
+  height: calc(100vh - 50px);
+}
+
+#blocklyDiv {
+  width: 70%;
+  height: 100%;
+}
+
+#stage {
+  width: 30%;
+  background: #111;
+  padding: 10px;
+}
+
+canvas {
+  background: white;
+  width: 100%;
+}
