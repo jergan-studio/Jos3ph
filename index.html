@@ -1,70 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Jos3ph Studio v3</title>
+  <title>Lua Learning Studio</title>
 
   <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <script src="https://unpkg.com/blockly/lua.min.js"></script>
+
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <header>
-  🧩 Jos3ph Studio v3
+  🧠 Lua Learning Studio
+
   <input id="user" placeholder="username">
+  <input id="pass" placeholder="password" type="password">
+
   <button onclick="login()">Login</button>
+  <button onclick="registerUser()">Register</button>
 </header>
 
 <div id="container">
 
   <div id="blocklyDiv"></div>
 
-  <div id="stage">
+  <div id="rightPanel">
 
-    <canvas id="canvas" width="300" height="300"></canvas>
+    <h3>📜 Lua Code</h3>
+    <pre id="codeOutput"></pre>
 
-    <div class="controls">
-      <button onclick="run()">▶ Run</button>
-      <button onclick="saveCloud()">☁ Save</button>
-      <button onclick="share()">🔗 Share</button>
-      <button onclick="exportJS()">JS</button>
-    </div>
+    <button onclick="run()">Generate Lua</button>
+    <button onclick="exportLua()">Export .lua</button>
+    <button onclick="save()">Save</button>
+    <button onclick="load()">Load</button>
 
     <div id="console"></div>
+
   </div>
+
 </div>
 
 <!-- TOOLBOX -->
 <xml id="toolbox" style="display:none">
 
-  <category name="Sprites" colour="210">
-    <block type="add_sprite"></block>
-    <block type="delete_sprite"></block>
-    <block type="select_sprite"></block>
+  <category name="Basics" colour="160">
+    <block type="text_print"></block>
+    <block type="create_sprite"></block>
     <block type="move"></block>
-    <block type="set_color"></block>
-    <block type="spin"></block>
-  </category>
-
-  <category name="Variables" colour="330">
-    <block type="set_var"></block>
-    <block type="change_var"></block>
-    <block type="get_var"></block>
-  </category>
-
-  <category name="Functions" colour="200">
-    <block type="function_def"></block>
-    <block type="function_call"></block>
-  </category>
-
-  <category name="Control" colour="60">
-    <block type="repeat"></block>
-    <block type="while_loop"></block>
-    <block type="forever"></block>
-  </category>
-
-  <category name="Sound" colour="290">
-    <block type="play_sound"></block>
   </category>
 
 </xml>
