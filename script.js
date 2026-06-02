@@ -19,10 +19,10 @@ let sprites = {};
 let currentSprite = null;
 let variables = {};
 let functions = {};
-let extensions = {};
+let runningIntervals = []; // 🔥 FIX: track loops
 
 /* =========================
-   DRAW ENGINE
+   CANVAS
 ========================= */
 
 const canvas = document.getElementById("canvas");
@@ -38,7 +38,7 @@ function draw(){
     ctx.translate(sp.x+15, sp.y+15);
     ctx.rotate((sp.rot||0)*Math.PI/180);
 
-    ctx.fillStyle = sp.color;
+    ctx.fillStyle = sp.color || "#ff8800";
     ctx.fillRect(-15,-15,30,30);
 
     ctx.restore();
@@ -54,12 +54,12 @@ const workspace = Blockly.inject("blocklyDiv",{
 });
 
 /* =========================
-   🔥 FIX: ALL BLOCKS IN ONE PLACE
+   BLOCKS
 ========================= */
 
 Blockly.defineBlocksWithJsonArray([
 
-/* ===== SPRITES ===== */
+/* SPRITES */
 {
   type:"add_sprite",
   message0:"add sprite %1",
@@ -113,7 +113,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:210
 },
 
-/* ===== VARIABLES ===== */
+/* VARIABLES */
 {
   type:"set_var",
   message0:"set %1 to %2",
@@ -144,7 +144,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:330
 },
 
-/* ===== FUNCTIONS ===== */
+/* FUNCTIONS */
 {
   type:"function_def",
   message0:"function %1 %2",
@@ -163,7 +163,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:200
 },
 
-/* ===== LOOPS ===== */
+/* LOOPS */
 {
   type:"repeat",
   message0:"repeat %1 times %2",
@@ -184,7 +184,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:60
 },
 
-/* ===== SOUND ===== */
+/* SOUND */
 {
   type:"play_sound",
   message0:"play sound",
@@ -196,7 +196,7 @@ Blockly.defineBlocksWithJsonArray([
 ]);
 
 /* =========================
-   GENERATORS
+   GENERATORS (FIXED)
 ========================= */
 
 /* SPRITES */
@@ -209,20 +209,29 @@ draw();
 `;
 };
 
-Blockly.JavaScript.forBlock.delete_sprite = b=>
-  `delete sprites["${b.getFieldValue("NAME")}"]; draw();`;
+Blockly.JavaScript.forBlock.delete_sprite =
+  b=>`delete sprites["${b.getFieldValue("NAME")}"]; draw();`;
 
-Blockly.JavaScript.forBlock.select_sprite = b=>
-  `currentSprite="${b.getFieldValue("SPRITE")}";`;
+Blockly.JavaScript.forBlock.select_sprite =
+  b=>`currentSprite="${b.getFieldValue("SPRITE")}";`;
 
-Blockly.JavaScript.forBlock.move =
-  b=>`sprites[currentSprite].x+=${b.getFieldValue("STEPS")};draw();`;
+Blockly.JavaScript.forBlock.move = b=>
+`if(currentSprite && sprites[currentSprite]){
+  sprites[currentSprite].x+=${b.getFieldValue("STEPS")};
+  draw();
+}`;
 
-Blockly.JavaScript.forBlock.set_color =
-  b=>`sprites[currentSprite].color="${b.getFieldValue("COLOR")}";draw();`;
+Blockly.JavaScript.forBlock.set_color = b=>
+`if(currentSprite && sprites[currentSprite]){
+  sprites[currentSprite].color="${b.getFieldValue("COLOR")}";
+  draw();
+}`;
 
-Blockly.JavaScript.forBlock.spin =
-  b=>`sprites[currentSprite].rot+=${b.getFieldValue("DEG")};draw();`;
+Blockly.JavaScript.forBlock.spin = b=>
+`if(currentSprite && sprites[currentSprite]){
+  sprites[currentSprite].rot+=${b.getFieldValue("DEG")};
+  draw();
+}`;
 
 /* VARIABLES */
 Blockly.JavaScript.forBlock.set_var =
@@ -238,8 +247,12 @@ Blockly.JavaScript.forBlock.get_var =
 Blockly.JavaScript.forBlock.function_def = b=>{
   const n=b.getFieldValue("NAME");
   const body=Blockly.JavaScript.statementToCode(b,"BODY");
-  functions[n]=body;
-  return `function ${n}(){${body}}`;
+
+  return `
+function ${n}(){
+  ${body}
+}
+`;
 };
 
 Blockly.JavaScript.forBlock.function_call =
@@ -248,21 +261,38 @@ Blockly.JavaScript.forBlock.function_call =
 /* LOOPS */
 Blockly.JavaScript.forBlock.repeat = b=>{
   const code=Blockly.JavaScript.statementToCode(b,"DO");
-  return `for(let i=0;i<${b.getFieldValue("COUNT")};i++){${code}}`;
+
+  return `
+for(let i=0;i<${b.getFieldValue("COUNT")};i++){
+  ${code}
+  draw();
+}
+`;
 };
 
+/* 🔥 FIXED FOREVER (NO FREEZE) */
 Blockly.JavaScript.forBlock.forever = b=>{
   const code=Blockly.JavaScript.statementToCode(b,"DO");
-  return `while(true){${code}}`;
+
+  const id = Math.random().toString(36);
+
+  return `
+runningIntervals.push(setInterval(()=>{
+  ${code}
+  draw();
+},16));
+`;
 };
 
-/* SOUND */
+/* SOUND (FIXED LEAK) */
+let audioCtx = null;
+
 Blockly.JavaScript.forBlock.play_sound = ()=>`
-const a=new AudioContext();
-const o=a.createOscillator();
-o.connect(a.destination);
+if(!audioCtx) audioCtx = new AudioContext();
+const o = audioCtx.createOscillator();
+o.connect(audioCtx.destination);
 o.start();
-o.stop(a.currentTime+0.2);
+o.stop(audioCtx.currentTime+0.2);
 `;
 
 /* =========================
@@ -270,8 +300,24 @@ o.stop(a.currentTime+0.2);
 ========================= */
 
 function run(){
-  const code = Blockly.JavaScript.workspaceToCode(workspace);
-  eval(code);
+
+  // 🔥 STOP OLD LOOPS
+  runningIntervals.forEach(id => clearInterval(id));
+  runningIntervals = [];
+
+  try {
+    const code = Blockly.JavaScript.workspaceToCode(workspace);
+
+    eval(`
+      (function(){
+        ${code}
+      })();
+    `);
+
+    log("Run successful");
+  } catch (e){
+    log("Error: " + e.message);
+  }
 }
 
 /* =========================
