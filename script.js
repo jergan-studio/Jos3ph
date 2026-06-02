@@ -1,7 +1,7 @@
 let currentUser = null;
 
 /* =========================
-   LOG
+   CONSOLE
 ========================= */
 
 function log(msg){
@@ -22,27 +22,6 @@ function login(){
 let sprites = {};
 let currentSprite = null;
 let variables = {};
-let functions = {};
-
-/* =========================
-   RUNTIME LOOP (SCRATCH STYLE)
-========================= */
-
-let running = false;
-
-function startEngine(){
-  if(running) return;
-  running = true;
-
-  function tick(){
-    if(!running) return;
-
-    draw();
-    requestAnimationFrame(tick);
-  }
-
-  tick();
-}
 
 /* =========================
    CANVAS
@@ -54,15 +33,15 @@ const ctx = canvas.getContext("2d");
 function draw(){
   ctx.clearRect(0,0,300,300);
 
-  for(let s in sprites){
-    const sp = sprites[s];
-    if(!sp) continue;
+  for(let name in sprites){
+    const s = sprites[name];
+    if(!s) continue;
 
     ctx.save();
-    ctx.translate(sp.x+15, sp.y+15);
-    ctx.rotate((sp.rot||0)*Math.PI/180);
+    ctx.translate(s.x, s.y);
+    ctx.rotate((s.rot||0) * Math.PI/180);
 
-    ctx.fillStyle = sp.color || "#ff8800";
+    ctx.fillStyle = s.color || "#ff8800";
     ctx.fillRect(-15,-15,30,30);
 
     ctx.restore();
@@ -70,7 +49,7 @@ function draw(){
 }
 
 /* =========================
-   BLOCKLY INIT (IMPORTANT FIX)
+   BLOCKLY INIT
 ========================= */
 
 const workspace = Blockly.inject("blocklyDiv",{
@@ -78,15 +57,25 @@ const workspace = Blockly.inject("blocklyDiv",{
 });
 
 /* =========================
-   BLOCKS (SAFE + REAL)
+   🧩 BLOCKS (MORE + CLEAN)
 ========================= */
 
 Blockly.defineBlocksWithJsonArray([
 
+/* SPRITES */
 {
   type:"add_sprite",
-  message0:"add sprite %1",
-  args0:[{type:"field_input",name:"NAME",text:"sprite1"}],
+  message0:"create sprite %1",
+  args0:[{type:"field_input",name:"NAME",text:"player"}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:210
+},
+
+{
+  type:"set_sprite",
+  message0:"select sprite %1",
+  args0:[{type:"field_input",name:"NAME",text:"player"}],
   previousStatement:null,
   nextStatement:null,
   colour:210
@@ -102,6 +91,15 @@ Blockly.defineBlocksWithJsonArray([
 },
 
 {
+  type:"turn",
+  message0:"turn %1 degrees",
+  args0:[{type:"field_number",name:"DEG",value:15}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:210
+},
+
+{
   type:"set_color",
   message0:"set color %1",
   args0:[{type:"field_colour",name:"COLOR",colour:"#ff8800"}],
@@ -110,15 +108,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:210
 },
 
-{
-  type:"spin",
-  message0:"spin %1 degrees",
-  args0:[{type:"field_number",name:"DEG",value:15}],
-  previousStatement:null,
-  nextStatement:null,
-  colour:210
-},
-
+/* VARIABLES */
 {
   type:"set_var",
   message0:"set %1 to %2",
@@ -143,6 +133,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:330
 },
 
+/* CONTROL */
 {
   type:"repeat",
   message0:"repeat %1 times %2",
@@ -155,6 +146,17 @@ Blockly.defineBlocksWithJsonArray([
   colour:60
 },
 
+/* LOOK */
+{
+  type:"say",
+  message0:"say %1",
+  args0:[{type:"field_input",name:"TEXT",text:"hello"}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:0
+},
+
+/* SOUND */
 {
   type:"play_sound",
   message0:"play sound",
@@ -166,33 +168,41 @@ Blockly.defineBlocksWithJsonArray([
 ]);
 
 /* =========================
-   GENERATORS (FIXED CORE)
+   🧠 GENERATORS (SAFE + SIMPLE)
 ========================= */
 
 Blockly.JavaScript.forBlock.add_sprite = b=>{
   const n = b.getFieldValue("NAME");
 
   return `
-sprites["${n}"] = {x:100,y:100,color:"#ff8800",rot:0};
+sprites["${n}"] = {x:150,y:150,rot:0,color:"#ff8800"};
 currentSprite="${n}";
+draw();
 `;
 };
 
+Blockly.JavaScript.forBlock.set_sprite = b=>`
+currentSprite="${b.getFieldValue("NAME")}";
+`;
+
 Blockly.JavaScript.forBlock.move = b=>`
-if(currentSprite && sprites[currentSprite]){
+if(sprites[currentSprite]){
   sprites[currentSprite].x += ${b.getFieldValue("STEPS")};
+  draw();
+}
+`;
+
+Blockly.JavaScript.forBlock.turn = b=>`
+if(sprites[currentSprite]){
+  sprites[currentSprite].rot += ${b.getFieldValue("DEG")};
+  draw();
 }
 `;
 
 Blockly.JavaScript.forBlock.set_color = b=>`
-if(currentSprite && sprites[currentSprite]){
+if(sprites[currentSprite]){
   sprites[currentSprite].color="${b.getFieldValue("COLOR")}";
-}
-`;
-
-Blockly.JavaScript.forBlock.spin = b=>`
-if(currentSprite && sprites[currentSprite]){
-  sprites[currentSprite].rot += ${b.getFieldValue("DEG")};
+  draw();
 }
 `;
 
@@ -212,37 +222,39 @@ Blockly.JavaScript.forBlock.repeat = b=>{
 for(let i=0;i<${b.getFieldValue("COUNT")};i++){
   ${code}
 }
+draw();
 `;
 };
 
-/* SOUND SAFE */
+Blockly.JavaScript.forBlock.say = b=>`
+log("${b.getFieldValue("TEXT")}");
+`;
+
 Blockly.JavaScript.forBlock.play_sound = ()=>`
-const ctx = new (window.AudioContext || window.webkitAudioContext)();
-const o = ctx.createOscillator();
-o.connect(ctx.destination);
+const a = new (window.AudioContext || window.webkitAudioContext)();
+const o = a.createOscillator();
+o.connect(a.destination);
 o.start();
-o.stop(ctx.currentTime + 0.1);
+o.stop(a.currentTime + 0.1);
 `;
 
 /* =========================
-   RUN (FIXED CORE SYSTEM)
+   🚀 RUN SYSTEM (STABLE)
 ========================= */
 
 function run(){
-
   try {
+    const code = Blockly.JavaScript.workspaceToCode(workspace);
+
     sprites = {};
     currentSprite = null;
 
-    const code = Blockly.JavaScript.workspaceToCode(workspace);
-
-    // SAFE EXECUTION (NO STACKING, NO INTERVAL BUGS)
     const fn = new Function(code);
     fn();
 
-    startEngine();
+    draw();
 
-    log("Run successful");
+    log("Run OK");
 
   } catch(e){
     log("Error: " + e.message);
