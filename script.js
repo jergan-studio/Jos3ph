@@ -1,5 +1,9 @@
 let currentUser = null;
 
+/* =========================
+   LOG SYSTEM
+========================= */
+
 function log(msg){
   const c = document.getElementById("console");
   c.innerHTML += msg + "<br>";
@@ -19,7 +23,7 @@ let sprites = {};
 let currentSprite = null;
 let variables = {};
 let functions = {};
-let runningIntervals = []; // 🔥 FIX: track loops
+let runningIntervals = [];
 
 /* =========================
    CANVAS
@@ -33,6 +37,7 @@ function draw(){
 
   for(let s in sprites){
     const sp = sprites[s];
+    if(!sp) continue;
 
     ctx.save();
     ctx.translate(sp.x+15, sp.y+15);
@@ -54,7 +59,7 @@ const workspace = Blockly.inject("blocklyDiv",{
 });
 
 /* =========================
-   BLOCKS
+   BLOCK DEFINITIONS
 ========================= */
 
 Blockly.defineBlocksWithJsonArray([
@@ -196,14 +201,15 @@ Blockly.defineBlocksWithJsonArray([
 ]);
 
 /* =========================
-   GENERATORS (FIXED)
+   GENERATORS (SAFE)
 ========================= */
 
 /* SPRITES */
 Blockly.JavaScript.forBlock.add_sprite = b=>{
   const n=b.getFieldValue("NAME");
+
   return `
-sprites["${n}"]={x:100,y:100,color:"#ff8800",rot:0};
+sprites["${n}"] = {x:100,y:100,color:"#ff8800",rot:0};
 currentSprite="${n}";
 draw();
 `;
@@ -217,7 +223,7 @@ Blockly.JavaScript.forBlock.select_sprite =
 
 Blockly.JavaScript.forBlock.move = b=>
 `if(currentSprite && sprites[currentSprite]){
-  sprites[currentSprite].x+=${b.getFieldValue("STEPS")};
+  sprites[currentSprite].x += ${b.getFieldValue("STEPS")};
   draw();
 }`;
 
@@ -229,7 +235,7 @@ Blockly.JavaScript.forBlock.set_color = b=>
 
 Blockly.JavaScript.forBlock.spin = b=>
 `if(currentSprite && sprites[currentSprite]){
-  sprites[currentSprite].rot+=${b.getFieldValue("DEG")};
+  sprites[currentSprite].rot += ${b.getFieldValue("DEG")};
   draw();
 }`;
 
@@ -270,21 +276,19 @@ for(let i=0;i<${b.getFieldValue("COUNT")};i++){
 `;
 };
 
-/* 🔥 FIXED FOREVER (NO FREEZE) */
+/* 🔥 SAFE FOREVER */
 Blockly.JavaScript.forBlock.forever = b=>{
   const code=Blockly.JavaScript.statementToCode(b,"DO");
 
-  const id = Math.random().toString(36);
-
   return `
-runningIntervals.push(setInterval(()=>{
+runningIntervals.push(setInterval(() => {
   ${code}
   draw();
-},16));
+}, 16));
 `;
 };
 
-/* SOUND (FIXED LEAK) */
+/* SOUND (SAFE SINGLE CONTEXT) */
 let audioCtx = null;
 
 Blockly.JavaScript.forBlock.play_sound = ()=>`
@@ -292,32 +296,51 @@ if(!audioCtx) audioCtx = new AudioContext();
 const o = audioCtx.createOscillator();
 o.connect(audioCtx.destination);
 o.start();
-o.stop(audioCtx.currentTime+0.2);
+o.stop(audioCtx.currentTime + 0.2);
 `;
 
 /* =========================
-   RUN ENGINE (FIXED)
+   RUN ENGINE (STABLE)
 ========================= */
 
 function run(){
 
-  // 🔥 STOP OLD LOOPS
+  // STOP OLD LOOPS
   runningIntervals.forEach(id => clearInterval(id));
   runningIntervals = [];
+
+  // RESET ENGINE STATE
+  sprites = {};
+  currentSprite = null;
+
+  draw();
 
   try {
     const code = Blockly.JavaScript.workspaceToCode(workspace);
 
-    eval(`
-      (function(){
-        ${code}
-      })();
-    `);
+    // SAFE EXECUTION
+    const fn = new Function(code);
+    fn();
 
     log("Run successful");
-  } catch (e){
+
+  } catch(e){
     log("Error: " + e.message);
   }
+}
+
+/* =========================
+   UI FIXES (MISSING FUNCTIONS)
+========================= */
+
+function saveCloud(){
+  log("Cloud save not implemented yet");
+}
+
+function exportJS(){
+  const code = Blockly.JavaScript.workspaceToCode(workspace);
+  console.log(code);
+  log("Exported JS to console");
 }
 
 /* =========================
