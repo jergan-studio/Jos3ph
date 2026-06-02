@@ -8,37 +8,59 @@ app.use(express.json());
 const USERS = "./users.json";
 const PROJECTS = "./projects.json";
 
+/* =========================
+   SAFE FILE INIT
+========================= */
+
+function ensureFile(file, fallback){
+  if(!fs.existsSync(file)){
+    fs.writeFileSync(file, JSON.stringify(fallback,null,2));
+  }
+}
+
+ensureFile(USERS, {});
+ensureFile(PROJECTS, {});
+
 const read = f => JSON.parse(fs.readFileSync(f, "utf8"));
 const write = (f,d) => fs.writeFileSync(f, JSON.stringify(d,null,2));
 
 const hash = p =>
   crypto.createHash("sha256").update(p).digest("hex");
 
-/* REGISTER */
-app.post("/register", (req,res)=>{
+/* =========================
+   REGISTER
+========================= */
+
+app.post("/register",(req,res)=>{
   const {user, pass} = req.body;
   const users = read(USERS);
 
-  if (users[user]) return res.sendStatus(409);
+  if(users[user]) return res.sendStatus(409);
 
   users[user] = hash(pass);
   write(USERS, users);
 
-  res.sendStatus(200);
+  res.json({ok:true});
 });
 
-/* LOGIN */
+/* =========================
+   LOGIN
+========================= */
+
 app.post("/login",(req,res)=>{
   const {user, pass} = req.body;
   const users = read(USERS);
 
-  if (users[user] !== hash(pass))
+  if(users[user] !== hash(pass))
     return res.sendStatus(403);
 
   res.json({ok:true});
 });
 
-/* SAVE */
+/* =========================
+   SAVE PROJECT
+========================= */
+
 app.post("/save",(req,res)=>{
   const {user, xml} = req.body;
   const projects = read(PROJECTS);
@@ -46,10 +68,13 @@ app.post("/save",(req,res)=>{
   projects[user] = xml;
   write(PROJECTS, projects);
 
-  res.sendStatus(200);
+  res.json({ok:true});
 });
 
-/* LOAD */
+/* =========================
+   LOAD PROJECT
+========================= */
+
 app.get("/load/:user",(req,res)=>{
   const projects = read(PROJECTS);
 
@@ -58,6 +83,10 @@ app.get("/load/:user",(req,res)=>{
   });
 });
 
+/* =========================
+   START SERVER
+========================= */
+
 app.listen(3000, ()=>{
-  console.log("Jos3ph server running on port 3000");
+  console.log("🚀 Lua Learning Studio server running on port 3000");
 });
