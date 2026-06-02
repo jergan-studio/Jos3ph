@@ -14,7 +14,7 @@ const write = (f,d) => fs.writeFileSync(f, JSON.stringify(d,null,2));
 const hash = p =>
   crypto.createHash("sha256").update(p).digest("hex");
 
-// REGISTER
+/* REGISTER */
 app.post("/register", (req,res)=>{
   const {user, pass} = req.body;
   const users = read(USERS);
@@ -23,32 +23,41 @@ app.post("/register", (req,res)=>{
 
   users[user] = hash(pass);
   write(USERS, users);
+
   res.sendStatus(200);
 });
 
-// LOGIN
-app.post("/login", (req,res)=>{
+/* LOGIN */
+app.post("/login",(req,res)=>{
   const {user, pass} = req.body;
   const users = read(USERS);
 
-  if (users[user] !== hash(pass)) return res.sendStatus(403);
+  if (users[user] !== hash(pass))
+    return res.sendStatus(403);
+
   res.json({ok:true});
 });
 
-// SAVE PROJECT
-app.post("/save", (req,res)=>{
+/* SAVE */
+app.post("/save",(req,res)=>{
   const {user, xml} = req.body;
   const projects = read(PROJECTS);
 
   projects[user] = xml;
   write(PROJECTS, projects);
+
   res.sendStatus(200);
 });
 
-// LOAD PROJECT
-app.get("/load/:user", (req,res)=>{
+/* LOAD */
+app.get("/load/:user",(req,res)=>{
   const projects = read(PROJECTS);
-  res.json({xml: projects[req.params.user] || null});
+
+  res.json({
+    xml: projects[req.params.user] || null
+  });
 });
 
-app.listen(3000, ()=>console.log("Jos3ph server running"));
+app.listen(3000, ()=>{
+  console.log("Jos3ph server running on port 3000");
+});
