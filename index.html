@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Jos3ph Studio</title>
+  <title>Jos3ph Studio v2</title>
 
   <script src="https://unpkg.com/blockly/blockly.min.js"></script>
   <link rel="stylesheet" href="style.css">
@@ -10,8 +10,7 @@
 <body>
 
 <header>
-  🧩 Jos3ph Studio
-
+  🧩 Jos3ph Studio v2
   <input id="user" placeholder="username">
   <button onclick="login()">Login</button>
 </header>
@@ -29,25 +28,32 @@
       <button onclick="saveCloud()">☁ Save</button>
       <button onclick="share()">🔗 Share</button>
       <button onclick="exportJS()">JS</button>
-      <button onclick="exportLua()">Lua</button>
     </div>
 
     <div id="console"></div>
-
   </div>
 </div>
 
-<!-- TOOLBOX -->
 <xml id="toolbox" style="display:none">
+
   <category name="Sprites" colour="210">
+    <block type="add_sprite"></block>
+    <block type="delete_sprite"></block>
     <block type="select_sprite"></block>
     <block type="move"></block>
     <block type="set_color"></block>
+    <block type="spin"></block>
   </category>
 
   <category name="Sound" colour="290">
     <block type="play_sound"></block>
   </category>
+
+  <category name="Control" colour="60">
+    <block type="repeat"></block>
+    <block type="forever"></block>
+  </category>
+
 </xml>
 
 <script src="script.js"></script>
