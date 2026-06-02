@@ -20,13 +20,10 @@ header {
   height: calc(100vh - 50px);
 }
 
-/* Blockly */
 #blocklyDiv {
   flex: 1;
-  height: 100%;
 }
 
-/* Right panel */
 #stage {
   width: 350px;
   background: #111;
@@ -36,7 +33,6 @@ header {
   gap: 10px;
 }
 
-/* Canvas */
 canvas {
   background: white;
   width: 100%;
@@ -44,7 +40,6 @@ canvas {
   border: 2px solid #333;
 }
 
-/* Buttons */
 .controls {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -63,7 +58,6 @@ button:hover {
   background: #555;
 }
 
-/* Console */
 #console {
   height: 120px;
   background: black;
