@@ -1,7 +1,7 @@
 let currentUser = null;
 
 /* =========================
-   LOG SYSTEM
+   LOG
 ========================= */
 
 function log(msg){
@@ -23,7 +23,26 @@ let sprites = {};
 let currentSprite = null;
 let variables = {};
 let functions = {};
-let runningIntervals = [];
+
+/* =========================
+   RUNTIME LOOP (SCRATCH STYLE)
+========================= */
+
+let running = false;
+
+function startEngine(){
+  if(running) return;
+  running = true;
+
+  function tick(){
+    if(!running) return;
+
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  tick();
+}
 
 /* =========================
    CANVAS
@@ -51,7 +70,7 @@ function draw(){
 }
 
 /* =========================
-   BLOCKLY INIT
+   BLOCKLY INIT (IMPORTANT FIX)
 ========================= */
 
 const workspace = Blockly.inject("blocklyDiv",{
@@ -59,188 +78,169 @@ const workspace = Blockly.inject("blocklyDiv",{
 });
 
 /* =========================
-   LUA / LUAU EXPORT
+   BLOCKS (SAFE + REAL)
 ========================= */
 
-function toLua(){
-  let lua = "-- Exported from Jos3ph Studio\n\n";
+Blockly.defineBlocksWithJsonArray([
 
-  lua += "-- Sprites\n";
-  for (let s in sprites){
-    const sp = sprites[s];
-    lua += `local ${s} = {x=${sp.x}, y=${sp.y}, rot=${sp.rot||0}, color="${sp.color}"}\n`;
-  }
+{
+  type:"add_sprite",
+  message0:"add sprite %1",
+  args0:[{type:"field_input",name:"NAME",text:"sprite1"}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:210
+},
 
-  lua += "\n-- Variables\n";
-  for (let v in variables){
-    lua += `${v} = ${variables[v]}\n`;
-  }
+{
+  type:"move",
+  message0:"move %1 steps",
+  args0:[{type:"field_number",name:"STEPS",value:10}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:210
+},
 
-  lua += `
+{
+  type:"set_color",
+  message0:"set color %1",
+  args0:[{type:"field_colour",name:"COLOR",colour:"#ff8800"}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:210
+},
 
--- Basic update loop (Luau-style pseudo)
-function update()
-  print("update running")
-end
-`;
+{
+  type:"spin",
+  message0:"spin %1 degrees",
+  args0:[{type:"field_number",name:"DEG",value:15}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:210
+},
 
-  return lua;
+{
+  type:"set_var",
+  message0:"set %1 to %2",
+  args0:[
+    {type:"field_input",name:"NAME"},
+    {type:"field_number",name:"VALUE",value:0}
+  ],
+  previousStatement:null,
+  nextStatement:null,
+  colour:330
+},
+
+{
+  type:"change_var",
+  message0:"change %1 by %2",
+  args0:[
+    {type:"field_input",name:"NAME"},
+    {type:"field_number",name:"VALUE",value:1}
+  ],
+  previousStatement:null,
+  nextStatement:null,
+  colour:330
+},
+
+{
+  type:"repeat",
+  message0:"repeat %1 times %2",
+  args0:[
+    {type:"field_number",name:"COUNT",value:5},
+    {type:"input_statement",name:"DO"}
+  ],
+  previousStatement:null,
+  nextStatement:null,
+  colour:60
+},
+
+{
+  type:"play_sound",
+  message0:"play sound",
+  previousStatement:null,
+  nextStatement:null,
+  colour:290
 }
 
-/* =========================
-   SHARE
-========================= */
-
-function share(){
-  const code = Blockly.JavaScript.workspaceToCode(workspace);
-
-  const data = {
-    javascript: code,
-    lua: toLua(),
-    sprites,
-    variables
-  };
-
-  navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-  log("Shared project (copied to clipboard)");
-}
+]);
 
 /* =========================
-   LUA DOWNLOAD
-========================= */
-
-function exportLuaFile(){
-  const lua = toLua();
-
-  const blob = new Blob([lua], {type:"text/plain"});
-  const a = document.createElement("a");
-
-  a.href = URL.createObjectURL(blob);
-  a.download = "project.lua";
-  a.click();
-
-  log("Lua file downloaded");
-}
-
-/* =========================
-   BLOCKLY GENERATORS (SAFE)
+   GENERATORS (FIXED CORE)
 ========================= */
 
 Blockly.JavaScript.forBlock.add_sprite = b=>{
-  const n=b.getFieldValue("NAME");
+  const n = b.getFieldValue("NAME");
 
   return `
 sprites["${n}"] = {x:100,y:100,color:"#ff8800",rot:0};
 currentSprite="${n}";
-draw();
 `;
 };
 
-Blockly.JavaScript.forBlock.delete_sprite =
-  b=>`delete sprites["${b.getFieldValue("NAME")}"]; draw();`;
-
-Blockly.JavaScript.forBlock.select_sprite =
-  b=>`currentSprite="${b.getFieldValue("SPRITE")}";`;
-
-Blockly.JavaScript.forBlock.move = b=>
-`if(currentSprite && sprites[currentSprite]){
+Blockly.JavaScript.forBlock.move = b=>`
+if(currentSprite && sprites[currentSprite]){
   sprites[currentSprite].x += ${b.getFieldValue("STEPS")};
-  draw();
-}`;
-
-Blockly.JavaScript.forBlock.set_color = b=>
-`if(currentSprite && sprites[currentSprite]){
-  sprites[currentSprite].color="${b.getFieldValue("COLOR")}";
-  draw();
-}`;
-
-Blockly.JavaScript.forBlock.spin = b=>
-`if(currentSprite && sprites[currentSprite]){
-  sprites[currentSprite].rot += ${b.getFieldValue("DEG")};
-  draw();
-}`;
-
-/* VARIABLES */
-Blockly.JavaScript.forBlock.set_var =
-  b=>`variables["${b.getFieldValue("NAME")}"]=${b.getFieldValue("VALUE")};`;
-
-Blockly.JavaScript.forBlock.change_var =
-  b=>`variables["${b.getFieldValue("NAME")}"]=(variables["${b.getFieldValue("NAME")}"]||0)+${b.getFieldValue("VALUE")};`;
-
-Blockly.JavaScript.forBlock.get_var =
-  b=>[`variables["${b.getFieldValue("NAME")}"]||0`,0];
-
-/* FUNCTIONS */
-Blockly.JavaScript.forBlock.function_def = b=>{
-  const n=b.getFieldValue("NAME");
-  const body=Blockly.JavaScript.statementToCode(b,"BODY");
-
-  return `
-function ${n}(){
-  ${body}
 }
 `;
-};
 
-Blockly.JavaScript.forBlock.function_call =
-  b=>`${b.getFieldValue("NAME")}();`;
+Blockly.JavaScript.forBlock.set_color = b=>`
+if(currentSprite && sprites[currentSprite]){
+  sprites[currentSprite].color="${b.getFieldValue("COLOR")}";
+}
+`;
 
-/* LOOPS */
+Blockly.JavaScript.forBlock.spin = b=>`
+if(currentSprite && sprites[currentSprite]){
+  sprites[currentSprite].rot += ${b.getFieldValue("DEG")};
+}
+`;
+
+Blockly.JavaScript.forBlock.set_var = b=>`
+variables["${b.getFieldValue("NAME")}"] = ${b.getFieldValue("VALUE")};
+`;
+
+Blockly.JavaScript.forBlock.change_var = b=>`
+variables["${b.getFieldValue("NAME")}"] =
+  (variables["${b.getFieldValue("NAME")}"] || 0) + ${b.getFieldValue("VALUE")};
+`;
+
 Blockly.JavaScript.forBlock.repeat = b=>{
-  const code=Blockly.JavaScript.statementToCode(b,"DO");
+  const code = Blockly.JavaScript.statementToCode(b,"DO");
 
   return `
 for(let i=0;i<${b.getFieldValue("COUNT")};i++){
   ${code}
-  draw();
 }
 `;
 };
 
-/* SAFE FOREVER (NO FREEZE) */
-Blockly.JavaScript.forBlock.forever = b=>{
-  const code=Blockly.JavaScript.statementToCode(b,"DO");
-
-  return `
-runningIntervals.push(setInterval(() => {
-  ${code}
-  draw();
-}, 16));
-`;
-};
-
-/* SOUND */
-let audioCtx = null;
-
+/* SOUND SAFE */
 Blockly.JavaScript.forBlock.play_sound = ()=>`
-if(!audioCtx) audioCtx = new AudioContext();
-const o = audioCtx.createOscillator();
-o.connect(audioCtx.destination);
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+const o = ctx.createOscillator();
+o.connect(ctx.destination);
 o.start();
-o.stop(audioCtx.currentTime + 0.2);
+o.stop(ctx.currentTime + 0.1);
 `;
 
 /* =========================
-   RUN ENGINE (STABLE)
+   RUN (FIXED CORE SYSTEM)
 ========================= */
 
 function run(){
 
-  // STOP OLD LOOPS
-  runningIntervals.forEach(id => clearInterval(id));
-  runningIntervals = [];
-
-  // RESET ENGINE
-  sprites = {};
-  currentSprite = null;
-
-  draw();
-
   try {
+    sprites = {};
+    currentSprite = null;
+
     const code = Blockly.JavaScript.workspaceToCode(workspace);
 
+    // SAFE EXECUTION (NO STACKING, NO INTERVAL BUGS)
     const fn = new Function(code);
     fn();
+
+    startEngine();
 
     log("Run successful");
 
