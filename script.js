@@ -2,9 +2,17 @@ let currentUser = null;
 
 function login() {
   currentUser = document.getElementById("user").value;
-  alert("Logged in as " + currentUser);
+  log("Logged in as " + currentUser);
 }
 
+// Console log system (replaces alerts later)
+function log(msg) {
+  const c = document.getElementById("console");
+  c.innerHTML += msg + "<br>";
+  c.scrollTop = c.scrollHeight;
+}
+
+// Blockly setup
 const workspace = Blockly.inject("blocklyDiv", {
   toolbox: document.getElementById("toolbox")
 });
@@ -21,7 +29,8 @@ let sprites = {
 let currentSprite = "cat";
 
 function draw() {
-  ctx.clearRect(0,0,300,300);
+  ctx.clearRect(0, 0, 300, 300);
+
   for (let s in sprites) {
     ctx.fillStyle = sprites[s].color;
     ctx.fillRect(sprites[s].x, sprites[s].y, 30, 30);
@@ -29,7 +38,7 @@ function draw() {
 }
 draw();
 
-// BLOCKS
+/* BLOCKS */
 Blockly.defineBlocksWithJsonArray([
   {
     "type":"select_sprite",
@@ -84,41 +93,56 @@ Blockly.JavaScript.forBlock.set_color = b =>
 Blockly.JavaScript.forBlock.play_sound = () =>
   `new AudioContext().createOscillator().start();\n`;
 
+/* RUN */
 function run() {
-  eval(Blockly.JavaScript.workspaceToCode(workspace));
+  const code = Blockly.JavaScript.workspaceToCode(workspace);
+  eval(code);
 }
 
-// ☁ CLOUD SAVE
+/* SAVE */
 function saveCloud() {
-  if (!currentUser) return alert("Login first");
-  const xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+  if (!currentUser) return log("Login first");
+
+  const xml = Blockly.Xml.domToText(
+    Blockly.Xml.workspaceToDom(workspace)
+  );
+
   localStorage.setItem("jos3ph_" + currentUser, xml);
-  alert("Saved to cloud");
+  log("Saved to cloud (local)");
 }
 
-// 🔗 SHARE
+/* SHARE */
 function share() {
-  const xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+  const xml = Blockly.Xml.domToText(
+    Blockly.Xml.workspaceToDom(workspace)
+  );
+
   const url = location.origin + "?p=" + btoa(xml);
   navigator.clipboard.writeText(url);
-  alert("Link copied");
+
+  log("Share link copied");
 }
 
-// EXPORT
+/* EXPORT JS */
 function exportJS() {
-  alert(Blockly.JavaScript.workspaceToCode(workspace));
+  log(Blockly.JavaScript.workspaceToCode(workspace));
 }
 
+/* EXPORT LUA */
 function exportLua() {
   const js = Blockly.JavaScript.workspaceToCode(workspace);
+
   const lua = js
-    .replace("sprites[currentSprite].x+=", "sprites[currentSprite].x = sprites[currentSprite].x + ")
-    .replace(/;/g,"");
-  alert(lua);
+    .replace(/sprites\[currentSprite\]\.x\+=/g,
+      "sprites[currentSprite].x = sprites[currentSprite].x + ")
+    .replace(/;/g, "");
+
+  log(lua);
 }
 
-// LOAD SHARE
+/* LOAD SHARE */
 const p = new URLSearchParams(location.search).get("p");
+
 if (p) {
   Blockly.Xml.domToWorkspace(
     Blockly.Xml.textToDom(atob(p)),
