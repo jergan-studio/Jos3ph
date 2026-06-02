@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Jos3ph Studio v2</title>
+  <title>Jos3ph Studio v3</title>
 
   <script src="https://unpkg.com/blockly/blockly.min.js"></script>
   <link rel="stylesheet" href="style.css">
@@ -10,7 +10,7 @@
 <body>
 
 <header>
-  🧩 Jos3ph Studio v2
+  🧩 Jos3ph Studio v3
   <input id="user" placeholder="username">
   <button onclick="login()">Login</button>
 </header>
@@ -34,6 +34,7 @@
   </div>
 </div>
 
+<!-- TOOLBOX -->
 <xml id="toolbox" style="display:none">
 
   <category name="Sprites" colour="210">
@@ -45,13 +46,25 @@
     <block type="spin"></block>
   </category>
 
-  <category name="Sound" colour="290">
-    <block type="play_sound"></block>
+  <category name="Variables" colour="330">
+    <block type="set_var"></block>
+    <block type="change_var"></block>
+    <block type="get_var"></block>
+  </category>
+
+  <category name="Functions" colour="200">
+    <block type="function_def"></block>
+    <block type="function_call"></block>
   </category>
 
   <category name="Control" colour="60">
     <block type="repeat"></block>
+    <block type="while_loop"></block>
     <block type="forever"></block>
+  </category>
+
+  <category name="Sound" colour="290">
+    <block type="play_sound"></block>
   </category>
 
 </xml>
