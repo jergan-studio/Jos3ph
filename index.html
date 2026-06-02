@@ -1,32 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Jos3ph</title>
+  <title>Jos3ph Studio</title>
+
   <script src="https://unpkg.com/blockly/blockly.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
 <header>
-  🧩 Jos3ph
+  🧩 Jos3ph Studio
+
   <input id="user" placeholder="username">
   <button onclick="login()">Login</button>
 </header>
 
 <div id="container">
+
   <div id="blocklyDiv"></div>
 
   <div id="stage">
+
     <canvas id="canvas" width="300" height="300"></canvas>
 
-    <button onclick="run()">▶ Run</button>
-    <button onclick="saveCloud()">☁ Save</button>
-    <button onclick="share()">🔗 Share</button>
-    <button onclick="exportJS()">JS</button>
-    <button onclick="exportLua()">Lua</button>
+    <div class="controls">
+      <button onclick="run()">▶ Run</button>
+      <button onclick="saveCloud()">☁ Save</button>
+      <button onclick="share()">🔗 Share</button>
+      <button onclick="exportJS()">JS</button>
+      <button onclick="exportLua()">Lua</button>
+    </div>
+
+    <div id="console"></div>
+
   </div>
 </div>
 
+<!-- TOOLBOX -->
 <xml id="toolbox" style="display:none">
   <category name="Sprites" colour="210">
     <block type="select_sprite"></block>
