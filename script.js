@@ -1,17 +1,53 @@
 let currentUser = null;
 
 /* =========================
-   LOG SYSTEM
+   LOG
 ========================= */
 
 function log(msg){
   const c = document.getElementById("console");
   if(!c) return;
   c.innerHTML += msg + "<br>";
+  c.scrollTop = c.scrollHeight;
 }
 
 /* =========================
-   WORKSPACE
+   AUTH
+========================= */
+
+async function registerUser(){
+  const user = document.getElementById("user").value;
+  const pass = document.getElementById("pass").value;
+
+  const res = await fetch("/register",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({user,pass})
+  });
+
+  log(res.ok ? "Registered" : "Register failed");
+}
+
+async function login(){
+  const user = document.getElementById("user").value;
+  const pass = document.getElementById("pass").value;
+
+  const res = await fetch("/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({user,pass})
+  });
+
+  if(res.ok){
+    currentUser = user;
+    log("Logged in");
+  } else {
+    log("Login failed");
+  }
+}
+
+/* =========================
+   BLOCKLY INIT
 ========================= */
 
 const workspace = Blockly.inject("blocklyDiv", {
@@ -19,40 +55,16 @@ const workspace = Blockly.inject("blocklyDiv", {
 });
 
 /* =========================
-   PLUGIN REGISTRY (CORE OF ENGINE)
+   PLUGIN ENGINE v2 CORE
 ========================= */
 
 const Plugins = {};
 
-/* register plugin helper */
-function registerPlugin(type, handler){
-  Plugins[type] = handler;
+function registerPlugin(type, fn){
+  Plugins[type] = fn;
 }
-
-/* =========================
-   DEFAULT LUA OUTPUT BUFFER
-========================= */
-
-function compileToLuau(){
-  let code = "";
-
-  const blocks = workspace.getTopBlocks(true);
-
-  for(const block of blocks){
-    code += compileBlock(block);
-  }
-
-  document.getElementById("codeOutput").textContent = code;
-
-  return code;
-}
-
-/* =========================
-   BLOCK COMPILER
-========================= */
 
 function compileBlock(block){
-
   if(!block) return "";
 
   const plugin = Plugins[block.type];
@@ -64,19 +76,42 @@ function compileBlock(block){
   return `-- Unknown block: ${block.type}\n`;
 }
 
+function indent(text){
+  return text
+    .split("\n")
+    .filter(l => l.trim())
+    .map(l => "    " + l)
+    .join("\n") + "\n";
+}
+
 /* =========================
-   LIVE UPDATE
+   COMPILER
 ========================= */
 
-workspace.addChangeListener(() => {
-  compileToLuau();
-});
+function compileToLuau(){
+
+  let code = "";
+
+  const blocks = workspace.getTopBlocks(true);
+
+  for(const b of blocks){
+    code += compileBlock(b);
+  }
+
+  const out = document.getElementById("codeOutput");
+  if(out) out.textContent = code;
+
+  return code;
+}
+
+workspace.addChangeListener(compileToLuau);
 
 /* =========================
    EXPORT
 ========================= */
 
 function exportLuau(){
+
   const code = compileToLuau();
 
   const blob = new Blob([code], {type:"text/plain"});
@@ -90,7 +125,7 @@ function exportLuau(){
 }
 
 /* =========================
-   SAVE / LOAD (basic)
+   SAVE / LOAD
 ========================= */
 
 async function save(){
@@ -133,6 +168,7 @@ async function load(){
 
 Blockly.defineBlocksWithJsonArray([
 
+/* OUTPUT */
 {
   type:"print",
   message0:"print %1",
@@ -142,6 +178,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:160
 },
 
+/* VARIABLES */
 {
   type:"set_var",
   message0:"set %1 = %2",
@@ -154,6 +191,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:230
 },
 
+/* CONTROL */
 {
   type:"repeat",
   message0:"repeat %1 times %2",
@@ -178,6 +216,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:70
 },
 
+/* FUNCTIONS */
 {
   type:"function",
   message0:"function %1 %2",
@@ -199,6 +238,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:290
 },
 
+/* PARTS */
 {
   type:"part_create",
   message0:"create part %1",
@@ -208,6 +248,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:200
 },
 
+/* CHAT */
 {
   type:"chat",
   message0:"chat %1",
@@ -217,6 +258,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:20
 },
 
+/* WAIT */
 {
   type:"wait",
   message0:"wait %1 sec",
@@ -224,12 +266,47 @@ Blockly.defineBlocksWithJsonArray([
   previousStatement:null,
   nextStatement:null,
   colour:120
+},
+
+/* EVENTS */
+{
+  type:"when_clicked",
+  message0:"when %1 clicked %2 do",
+  args0:[
+    {type:"field_input",name:"TARGET",text:"button"},
+    {type:"input_statement",name:"DO"}
+  ],
+  colour:10,
+  previousStatement:null,
+  nextStatement:null
+},
+
+/* UI */
+{
+  type:"ui_button",
+  message0:"create button %1",
+  args0:[{type:"field_input",name:"NAME",text:"Button"}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:340
+},
+
+{
+  type:"ui_text",
+  message0:"set UI %1 text %2",
+  args0:[
+    {type:"field_input",name:"NAME",text:"Button"},
+    {type:"field_input",name:"TEXT",text:"Click me"}
+  ],
+  previousStatement:null,
+  nextStatement:null,
+  colour:340
 }
 
 ]);
 
 /* =========================
-   PLUGINS (THIS IS THE ENGINE POWER)
+   PLUGINS (LUAU OUTPUT)
 ========================= */
 
 /* OUTPUT */
@@ -237,7 +314,7 @@ registerPlugin("print", b =>
   `print("${b.getFieldValue("TEXT")}")`
 );
 
-/* VARIABLES */
+/* VAR */
 registerPlugin("set_var", b =>
   `local ${b.getFieldValue("NAME")} = ${b.getFieldValue("VALUE")}`
 );
@@ -247,7 +324,7 @@ registerPlugin("wait", b =>
   `task.wait(${b.getFieldValue("TIME")})`
 );
 
-/* REPEAT (IMPORTANT: child traversal) */
+/* REPEAT */
 registerPlugin("repeat", b => {
 
   let body = "";
@@ -299,11 +376,11 @@ registerPlugin("call", b =>
 
 /* PART */
 registerPlugin("part_create", b => {
-  const name = b.getFieldValue("NAME");
+  const n = b.getFieldValue("NAME");
 
   return `
-local ${name} = Instance.new("Part")
-${name}.Parent = workspace
+local ${n} = Instance.new("Part")
+${n}.Parent = workspace
 `;
 });
 
@@ -312,21 +389,50 @@ registerPlugin("chat", b =>
   `print("[CHAT] ${b.getFieldValue("TEXT")}")`
 );
 
-/* =========================
-   HELPERS
-========================= */
+/* EVENT */
+registerPlugin("when_clicked", b => {
 
-function indent(text){
-  return text
-    .split("\n")
-    .filter(l => l.trim())
-    .map(l => "    " + l)
-    .join("\n") + "\n";
-}
+  let body = "";
+  let child = b.getInputTargetBlock("DO");
+
+  while(child){
+    body += compileBlock(child);
+    child = child.getNextBlock();
+  }
+
+  return `
+-- click event (${b.getFieldValue("TARGET")})
+${b.getFieldValue("TARGET")}.MouseButton1Click:Connect(function()
+${indent(body)}
+end)
+`;
+});
+
+/* UI */
+registerPlugin("ui_button", b => {
+
+  const n = b.getFieldValue("NAME");
+
+  return `
+local ${n} = Instance.new("TextButton")
+${n}.Parent = game.Players.LocalPlayer.PlayerGui
+${n}.Text = "${n}"
+`;
+});
+
+registerPlugin("ui_text", b => {
+
+  const n = b.getFieldValue("NAME");
+  const t = b.getFieldValue("TEXT");
+
+  return `
+${n}.Text = "${t}"
+`;
+});
 
 /* =========================
    START
 ========================= */
 
 compileToLuau();
-log("Luau Plugin Engine v2 loaded");
+log("Luau Plugin Engine v2 FULL loaded");
