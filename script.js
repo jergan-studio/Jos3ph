@@ -5,142 +5,286 @@ let currentUser = null;
 ========================= */
 
 function log(msg){
-  const c = document.getElementById("console");
-  if(c){
-    c.innerHTML += msg + "<br>";
+  const consoleDiv = document.getElementById("console");
+  consoleDiv.innerHTML += msg + "<br>";
+  consoleDiv.scrollTop = consoleDiv.scrollHeight;
+}
+
+/* =========================
+   AUTH
+========================= */
+
+async function registerUser(){
+
+  const user = document.getElementById("user").value;
+  const pass = document.getElementById("pass").value;
+
+  const res = await fetch("/register",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({user,pass})
+  });
+
+  if(res.ok){
+    log("Registered successfully");
+  }else{
+    log("Registration failed");
+  }
+}
+
+async function login(){
+
+  const user = document.getElementById("user").value;
+  const pass = document.getElementById("pass").value;
+
+  const res = await fetch("/login",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({user,pass})
+  });
+
+  if(res.ok){
+    currentUser = user;
+    log("Logged in");
+  }else{
+    log("Login failed");
   }
 }
 
 /* =========================
-   LOGIN (OPTIONAL)
-========================= */
-
-function login(){
-  currentUser = document.getElementById("user").value;
-  log("Logged in: " + currentUser);
-}
-
-/* =========================
-   BLOCKLY WORKSPACE
-========================= */
-
-const workspace = Blockly.inject("blocklyDiv", {
-  toolbox: document.getElementById("toolbox")
-});
-
-/* =========================
-   🔥 CRITICAL FIX: LUA GENERATOR SETUP
-   (THIS WAS YOUR MAIN BUG)
-========================= */
-
-Blockly.Lua = Blockly.Lua || {};
-Blockly.Lua.forBlock = {};
-
-/* =========================
-   BLOCK DEFINITIONS (SAFE)
+   BLOCK DEFINITIONS
 ========================= */
 
 Blockly.defineBlocksWithJsonArray([
 
 {
-  type: "print_text",
-  message0: "print %1",
-  args0: [
-    { type: "field_input", name: "TEXT", text: "hello" }
+  "type":"print_text",
+  "message0":"print %1",
+  "args0":[
+    {
+      "type":"field_input",
+      "name":"TEXT",
+      "text":"Hello Luau"
+    }
   ],
-  previousStatement: null,
-  nextStatement: null,
-  colour: 160
+  "previousStatement":null,
+  "nextStatement":null,
+  "colour":160
 },
 
 {
-  type: "set_var",
-  message0: "set %1 to %2",
-  args0: [
-    { type: "field_input", name: "NAME", text: "x" },
-    { type: "field_number", name: "VALUE", value: 0 }
+  "type":"set_var",
+  "message0":"set variable %1 to %2",
+  "args0":[
+    {
+      "type":"field_input",
+      "name":"NAME",
+      "text":"score"
+    },
+    {
+      "type":"field_number",
+      "name":"VALUE",
+      "value":0
+    }
   ],
-  previousStatement: null,
-  nextStatement: null,
-  colour: 230
+  "previousStatement":null,
+  "nextStatement":null,
+  "colour":230
 },
 
 {
-  type: "move",
-  message0: "move %1",
-  args0: [
-    { type: "field_number", name: "STEP", value: 10 }
+  "type":"repeat_times",
+  "message0":"repeat %1 times %2",
+  "args0":[
+    {
+      "type":"field_number",
+      "name":"COUNT",
+      "value":5
+    },
+    {
+      "type":"input_statement",
+      "name":"DO"
+    }
   ],
-  previousStatement: null,
-  nextStatement: null,
-  colour: 210
+  "previousStatement":null,
+  "nextStatement":null,
+  "colour":60
+},
+
+{
+  "type":"wait_seconds",
+  "message0":"wait %1 seconds",
+  "args0":[
+    {
+      "type":"field_number",
+      "name":"SECONDS",
+      "value":1
+    }
+  ],
+  "previousStatement":null,
+  "nextStatement":null,
+  "colour":60
 }
 
 ]);
 
 /* =========================
-   🔥 LUA GENERATORS (THIS FIXES BLOCKS)
+   WORKSPACE
 ========================= */
 
-Blockly.Lua.forBlock.print_text = function(block){
-  const text = block.getFieldValue("TEXT");
-  return `print("${text}")\n`;
-};
-
-Blockly.Lua.forBlock.set_var = function(block){
-  const name = block.getFieldValue("NAME");
-  const value = block.getFieldValue("VALUE");
-  return `${name} = ${value}\n`;
-};
-
-Blockly.Lua.forBlock.move = function(block){
-  const step = block.getFieldValue("STEP");
-  return `x = (x or 0) + ${step}\n`;
-};
-
-/* =========================
-   LIVE CODE OUTPUT
-========================= */
-
-workspace.addChangeListener(() => {
-  const lua = Blockly.Lua.workspaceToCode(workspace);
-
-  const out = document.getElementById("codeOutput");
-  if(out){
-    out.textContent = lua;
-  }
+const workspace = Blockly.inject("blocklyDiv",{
+  toolbox: document.getElementById("toolbox")
 });
 
 /* =========================
-   RUN (JUST GENERATE)
+   LUAU GENERATOR
 ========================= */
 
-function run(){
-  const lua = Blockly.Lua.workspaceToCode(workspace);
+function blockToLuau(block){
 
-  log("Lua generated:");
-  log(lua);
+  if(!block) return "";
+
+  switch(block.type){
+
+    case "print_text":
+      return `print("${block.getFieldValue("TEXT")}")\n`;
+
+    case "set_var":
+      return `local ${block.getFieldValue("NAME")} = ${block.getFieldValue("VALUE")}\n`;
+
+    case "wait_seconds":
+      return `task.wait(${block.getFieldValue("SECONDS")})\n`;
+
+    case "repeat_times": {
+
+      const count = block.getFieldValue("COUNT");
+
+      let body = "";
+      let child = block.getInputTargetBlock("DO");
+
+      while(child){
+        body += blockToLuau(child);
+        child = child.getNextBlock();
+      }
+
+      return `for i = 1, ${count} do\n${indent(body)}end\n`;
+    }
+
+    default:
+      return "";
+  }
 }
 
+function indent(text){
+  return text
+    .split("\n")
+    .filter(line => line.length)
+    .map(line => "    " + line)
+    .join("\n") + "\n";
+}
+
+function generateCode(){
+
+  let code = "";
+
+  const blocks = workspace.getTopBlocks(true);
+
+  for(const block of blocks){
+    code += blockToLuau(block);
+  }
+
+  document.getElementById("codeOutput").textContent = code;
+
+  return code;
+}
+
+workspace.addChangeListener(() => {
+  generateCode();
+});
+
 /* =========================
-   EXPORT LUA
+   EXPORT
 ========================= */
 
-function exportLua(){
-  const lua = Blockly.Lua.workspaceToCode(workspace);
+function exportLuau(){
 
-  const blob = new Blob([lua], {type:"text/plain"});
+  const code = generateCode();
+
+  const blob = new Blob([code],{
+    type:"text/plain"
+  });
+
   const a = document.createElement("a");
 
   a.href = URL.createObjectURL(blob);
-  a.download = "script.lua";
+  a.download = "script.luau";
   a.click();
 
-  log("Exported Lua file");
+  URL.revokeObjectURL(a.href);
+
+  log("Exported .luau file");
 }
 
 /* =========================
-   INIT SAFE STATE
+   SAVE / LOAD
 ========================= */
 
-log("Lua Studio loaded");
+async function save(){
+
+  if(!currentUser){
+    log("Login first");
+    return;
+  }
+
+  const xml = Blockly.Xml.domToText(
+    Blockly.Xml.workspaceToDom(workspace)
+  );
+
+  await fetch("/save",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      user:currentUser,
+      xml
+    })
+  });
+
+  log("Project saved");
+}
+
+async function load(){
+
+  if(!currentUser){
+    log("Login first");
+    return;
+  }
+
+  const res = await fetch(`/load/${currentUser}`);
+  const data = await res.json();
+
+  if(!data.xml){
+    log("No saved project");
+    return;
+  }
+
+  workspace.clear();
+
+  const xml = Blockly.utils.xml.textToDom(data.xml);
+
+  Blockly.Xml.domToWorkspace(xml, workspace);
+
+  log("Project loaded");
+}
+
+/* =========================
+   START
+========================= */
+
+generateCode();
+log("Jos3ph Luau Studio ready");
