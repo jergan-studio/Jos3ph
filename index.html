@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Jos3ph Luau Plugin Engine v2</title>
+<title>Jos3ph Luau Engine v2</title>
 
+<!-- Blockly -->
 <script src="https://unpkg.com/blockly/blockly.min.js"></script>
 
 <link rel="stylesheet" href="style.css">
@@ -18,13 +19,14 @@
   <input id="pass" type="password" placeholder="password">
 
   <button onclick="login()">Login</button>
-  <button onclick="registerUser()">Register</button>
 </header>
 
 <div id="container">
 
+  <!-- LEFT: BLOCKLY -->
   <div id="blocklyDiv"></div>
 
+  <!-- RIGHT: OUTPUT -->
   <div id="rightPanel">
 
     <h3>📜 Luau Output</h3>
@@ -43,45 +45,59 @@
 
 </div>
 
-<!-- TOOLBOX -->
+<!-- =========================
+     TOOLBOX (FULL FIXED)
+========================= -->
+
 <xml id="toolbox" style="display:none">
 
+  <!-- OUTPUT -->
   <category name="🟢 Output" colour="160">
     <block type="print"></block>
   </category>
 
+  <!-- VARIABLES -->
   <category name="🔵 Variables" colour="230">
     <block type="set_var"></block>
   </category>
 
+  <!-- CONTROL -->
   <category name="🟡 Control" colour="60">
     <block type="repeat"></block>
     <block type="if"></block>
     <block type="wait"></block>
   </category>
 
+  <!-- FUNCTIONS -->
   <category name="🟣 Functions" colour="290">
     <block type="function"></block>
     <block type="call"></block>
   </category>
 
+  <!-- PARTS -->
   <category name="🟠 Parts" colour="200">
     <block type="part_create"></block>
   </category>
 
+  <!-- CHAT -->
   <category name="🔴 Chat" colour="20">
     <block type="chat"></block>
   </category>
 
-  <!-- 🟣 UI SECTION -->
+  <!-- EVENTS -->
+  <category name="⚡ Events" colour="10">
+    <block type="when_clicked"></block>
+  </category>
+
+  <!-- UI SYSTEM -->
   <category name="🟣 UI SYSTEM" colour="340">
-    <block type="ui_screen"></block>
     <block type="ui_button"></block>
     <block type="ui_text"></block>
   </category>
 
 </xml>
 
+<!-- SCRIPT -->
 <script src="script.js"></script>
 
 </body>
