@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Jos3ph</title></title>
+<title>Jos3ph Luau Plugin Engine v2</title>
 
-<!-- Blockly -->
 <script src="https://unpkg.com/blockly/blockly.min.js"></script>
 
 <link rel="stylesheet" href="style.css">
@@ -13,7 +12,7 @@
 <body>
 
 <header>
-    jos3ph
+  🧠 Jos3ph Luau Plugin Engine v2
 
   <input id="user" placeholder="username">
   <input id="pass" type="password" placeholder="password">
@@ -24,17 +23,15 @@
 
 <div id="container">
 
-  <!-- BLOCKLY AREA -->
   <div id="blocklyDiv"></div>
 
-  <!-- RIGHT PANEL -->
   <div id="rightPanel">
 
     <h3>📜 Luau Output</h3>
     <pre id="codeOutput"></pre>
 
     <button onclick="compileToLuau()">Generate</button>
-    <button onclick="exportLuau()">Export .luau</button>
+    <button onclick="exportLuau()">Export</button>
     <button onclick="save()">Save</button>
     <button onclick="load()">Load</button>
 
@@ -46,48 +43,45 @@
 
 </div>
 
-<!-- =========================
-     TOOLBOX (FIXED MATCHING ENGINE v2)
-========================= -->
-
+<!-- TOOLBOX -->
 <xml id="toolbox" style="display:none">
 
-  <!-- OUTPUT -->
   <category name="🟢 Output" colour="160">
     <block type="print"></block>
   </category>
 
-  <!-- VARIABLES -->
   <category name="🔵 Variables" colour="230">
     <block type="set_var"></block>
   </category>
 
-  <!-- CONTROL -->
   <category name="🟡 Control" colour="60">
     <block type="repeat"></block>
     <block type="if"></block>
     <block type="wait"></block>
   </category>
 
-  <!-- FUNCTIONS -->
   <category name="🟣 Functions" colour="290">
     <block type="function"></block>
     <block type="call"></block>
   </category>
 
-  <!-- PARTS -->
   <category name="🟠 Parts" colour="200">
     <block type="part_create"></block>
   </category>
 
-  <!-- CHAT -->
   <category name="🔴 Chat" colour="20">
     <block type="chat"></block>
   </category>
 
+  <!-- 🟣 UI SECTION -->
+  <category name="🟣 UI SYSTEM" colour="340">
+    <block type="ui_screen"></block>
+    <block type="ui_button"></block>
+    <block type="ui_text"></block>
+  </category>
+
 </xml>
 
-<!-- SCRIPT -->
 <script src="script.js"></script>
 
 </body>
