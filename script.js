@@ -8,7 +8,6 @@ function log(msg){
   const c = document.getElementById("console");
   if(!c) return;
   c.innerHTML += msg + "<br>";
-  c.scrollTop = c.scrollHeight;
 }
 
 /* =========================
@@ -19,13 +18,13 @@ async function registerUser(){
   const user = document.getElementById("user").value;
   const pass = document.getElementById("pass").value;
 
-  const res = await fetch("/register",{
+  await fetch("/register",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({user,pass})
   });
 
-  log(res.ok ? "Registered" : "Register failed");
+  log("Register attempt done");
 }
 
 async function login(){
@@ -55,7 +54,7 @@ const workspace = Blockly.inject("blocklyDiv", {
 });
 
 /* =========================
-   PLUGIN ENGINE v2 CORE
+   PLUGIN ENGINE
 ========================= */
 
 const Plugins = {};
@@ -111,7 +110,6 @@ workspace.addChangeListener(compileToLuau);
 ========================= */
 
 function exportLuau(){
-
   const code = compileToLuau();
 
   const blob = new Blob([code], {type:"text/plain"});
@@ -121,7 +119,7 @@ function exportLuau(){
   a.download = "script.luau";
   a.click();
 
-  log("Exported Luau");
+  log("Exported");
 }
 
 /* =========================
@@ -150,7 +148,7 @@ async function load(){
   const res = await fetch(`/load/${currentUser}`);
   const data = await res.json();
 
-  if(!data.xml) return log("No project");
+  if(!data.xml) return log("No data");
 
   workspace.clear();
 
@@ -268,20 +266,16 @@ Blockly.defineBlocksWithJsonArray([
   colour:120
 },
 
-/* EVENTS */
+/* UI SYSTEM */
 {
-  type:"when_clicked",
-  message0:"when %1 clicked %2 do",
-  args0:[
-    {type:"field_input",name:"TARGET",text:"button"},
-    {type:"input_statement",name:"DO"}
-  ],
-  colour:10,
+  type:"ui_screen",
+  message0:"create UI screen %1",
+  args0:[{type:"field_input",name:"NAME",text:"ScreenGui"}],
   previousStatement:null,
-  nextStatement:null
+  nextStatement:null,
+  colour:340
 },
 
-/* UI */
 {
   type:"ui_button",
   message0:"create button %1",
@@ -306,7 +300,7 @@ Blockly.defineBlocksWithJsonArray([
 ]);
 
 /* =========================
-   PLUGINS (LUAU OUTPUT)
+   PLUGINS
 ========================= */
 
 /* OUTPUT */
@@ -319,14 +313,8 @@ registerPlugin("set_var", b =>
   `local ${b.getFieldValue("NAME")} = ${b.getFieldValue("VALUE")}`
 );
 
-/* WAIT */
-registerPlugin("wait", b =>
-  `task.wait(${b.getFieldValue("TIME")})`
-);
-
 /* REPEAT */
 registerPlugin("repeat", b => {
-
   let body = "";
   let child = b.getInputTargetBlock("DO");
 
@@ -341,7 +329,6 @@ ${indent(body)}end`;
 
 /* IF */
 registerPlugin("if", b => {
-
   let body = "";
   let child = b.getInputTargetBlock("DO");
 
@@ -356,7 +343,6 @@ ${indent(body)}end`;
 
 /* FUNCTION */
 registerPlugin("function", b => {
-
   let body = "";
   let child = b.getInputTargetBlock("BODY");
 
@@ -377,11 +363,8 @@ registerPlugin("call", b =>
 /* PART */
 registerPlugin("part_create", b => {
   const n = b.getFieldValue("NAME");
-
-  return `
-local ${n} = Instance.new("Part")
-${n}.Parent = workspace
-`;
+  return `local ${n} = Instance.new("Part")
+${n}.Parent = workspace`;
 });
 
 /* CHAT */
@@ -389,45 +372,26 @@ registerPlugin("chat", b =>
   `print("[CHAT] ${b.getFieldValue("TEXT")}")`
 );
 
-/* EVENT */
-registerPlugin("when_clicked", b => {
-
-  let body = "";
-  let child = b.getInputTargetBlock("DO");
-
-  while(child){
-    body += compileBlock(child);
-    child = child.getNextBlock();
-  }
-
-  return `
--- click event (${b.getFieldValue("TARGET")})
-${b.getFieldValue("TARGET")}.MouseButton1Click:Connect(function()
-${indent(body)}
-end)
-`;
-});
-
-/* UI */
-registerPlugin("ui_button", b => {
-
+/* UI SCREEN */
+registerPlugin("ui_screen", b => {
   const n = b.getFieldValue("NAME");
-
-  return `
-local ${n} = Instance.new("TextButton")
-${n}.Parent = game.Players.LocalPlayer.PlayerGui
-${n}.Text = "${n}"
-`;
+  return `local ${n} = Instance.new("ScreenGui")
+${n}.Parent = game.Players.LocalPlayer.PlayerGui`;
 });
 
-registerPlugin("ui_text", b => {
+/* UI BUTTON */
+registerPlugin("ui_button", b => {
+  const n = b.getFieldValue("NAME");
+  return `local ${n} = Instance.new("TextButton")
+${n}.Parent = game.Players.LocalPlayer.PlayerGui
+${n}.Text = "${n}"`;
+});
 
+/* UI TEXT */
+registerPlugin("ui_text", b => {
   const n = b.getFieldValue("NAME");
   const t = b.getFieldValue("TEXT");
-
-  return `
-${n}.Text = "${t}"
-`;
+  return `${n}.Text = "${t}"`;
 });
 
 /* =========================
@@ -435,4 +399,4 @@ ${n}.Text = "${t}"
 ========================= */
 
 compileToLuau();
-log("Luau Plugin Engine v2 FULL loaded");
+log("Engine v2 ready");
