@@ -1,291 +1,85 @@
 let currentUser = null;
 
 /* =========================
-   LOG
+   LOG SYSTEM
 ========================= */
 
 function log(msg){
   const c = document.getElementById("console");
   if(!c) return;
   c.innerHTML += msg + "<br>";
-  c.scrollTop = c.scrollHeight;
 }
-
-/* =========================
-   AUTH (UNCHANGED)
-========================= */
-
-async function registerUser(){
-  const user = document.getElementById("user").value;
-  const pass = document.getElementById("pass").value;
-
-  const res = await fetch("/register",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({user,pass})
-  });
-
-  log(res.ok ? "Registered" : "Register failed");
-}
-
-async function login(){
-  const user = document.getElementById("user").value;
-  const pass = document.getElementById("pass").value;
-
-  const res = await fetch("/login",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({user,pass})
-  });
-
-  if(res.ok){
-    currentUser = user;
-    log("Logged in");
-  } else {
-    log("Login failed");
-  }
-}
-
-/* =========================
-   BLOCK DEFINITIONS (FULL SET)
-========================= */
-
-Blockly.defineBlocksWithJsonArray([
-
-/* OUTPUT */
-{
-  type:"print_text",
-  message0:"print %1",
-  args0:[{type:"field_input",name:"TEXT",text:"hello"}],
-  previousStatement:null,
-  nextStatement:null,
-  colour:160
-},
-
-/* VARIABLES */
-{
-  type:"set_var",
-  message0:"set %1 to %2",
-  args0:[
-    {type:"field_input",name:"NAME",text:"score"},
-    {type:"field_number",name:"VALUE",value:0}
-  ],
-  previousStatement:null,
-  nextStatement:null,
-  colour:230
-},
-
-/* CONTROL */
-{
-  type:"repeat_times",
-  message0:"repeat %1 times %2",
-  args0:[
-    {type:"field_number",name:"COUNT",value:5},
-    {type:"input_statement",name:"DO"}
-  ],
-  previousStatement:null,
-  nextStatement:null,
-  colour:60
-},
-
-{
-  type:"if_block",
-  message0:"if %1 then %2",
-  args0:[
-    {type:"field_input",name:"COND",text:"x > 10"},
-    {type:"input_statement",name:"DO"}
-  ],
-  previousStatement:null,
-  nextStatement:null,
-  colour:70
-},
-
-/* FUNCTIONS */
-{
-  type:"function_def",
-  message0:"function %1 %2",
-  args0:[
-    {type:"field_input",name:"NAME",text:"myFunc"},
-    {type:"input_statement",name:"BODY"}
-  ],
-  previousStatement:null,
-  nextStatement:null,
-  colour:290
-},
-
-{
-  type:"function_call",
-  message0:"call %1",
-  args0:[{type:"field_input",name:"NAME"}],
-  previousStatement:null,
-  nextStatement:null,
-  colour:290
-},
-
-/* PARTS (ROBLOX STYLE) */
-{
-  type:"create_part",
-  message0:"create part %1",
-  args0:[{type:"field_input",name:"NAME",text:"Part"}],
-  previousStatement:null,
-  nextStatement:null,
-  colour:200
-},
-
-{
-  type:"set_color",
-  message0:"set color %1",
-  args0:[{type:"field_input",name:"COLOR",text:"red"}],
-  previousStatement:null,
-  nextStatement:null,
-  colour:200
-},
-
-/* CHAT */
-{
-  type:"chat_message",
-  message0:"chat %1",
-  args0:[{type:"field_input",name:"TEXT",text:"hello"}],
-  previousStatement:null,
-  nextStatement:null,
-  colour:20
-},
-
-/* WAIT */
-{
-  type:"wait_seconds",
-  message0:"wait %1 seconds",
-  args0:[{type:"field_number",name:"SECONDS",value:1}],
-  previousStatement:null,
-  nextStatement:null,
-  colour:120
-}
-
-]);
 
 /* =========================
    WORKSPACE
 ========================= */
 
-const workspace = Blockly.inject("blocklyDiv",{
+const workspace = Blockly.inject("blocklyDiv", {
   toolbox: document.getElementById("toolbox")
 });
 
 /* =========================
-   LUA GENERATOR (FIXED CORE)
+   PLUGIN REGISTRY (CORE OF ENGINE)
 ========================= */
 
-function blockToLuau(block){
+const Plugins = {};
 
-  if(!block) return "";
-
-  switch(block.type){
-
-    case "print_text":
-      return `print("${block.getFieldValue("TEXT")}")\n`;
-
-    case "set_var":
-      return `local ${block.getFieldValue("NAME")} = ${block.getFieldValue("VALUE")}\n`;
-
-    case "wait_seconds":
-      return `task.wait(${block.getFieldValue("SECONDS")})\n`;
-
-    case "repeat_times": {
-      let body = "";
-      let child = block.getInputTargetBlock("DO");
-
-      while(child){
-        body += blockToLuau(child);
-        child = child.getNextBlock();
-      }
-
-      return `for i = 1, ${block.getFieldValue("COUNT")} do\n${indent(body)}end\n`;
-    }
-
-    case "if_block": {
-      let body = "";
-      let child = block.getInputTargetBlock("DO");
-
-      while(child){
-        body += blockToLuau(child);
-        child = child.getNextBlock();
-      }
-
-      return `if ${block.getFieldValue("COND")} then\n${indent(body)}end\n`;
-    }
-
-    case "function_def": {
-      let body = "";
-      let child = block.getInputTargetBlock("BODY");
-
-      while(child){
-        body += blockToLuau(child);
-        child = child.getNextBlock();
-      }
-
-      return `function ${block.getFieldValue("NAME")}()\n${indent(body)}end\n`;
-    }
-
-    case "function_call":
-      return `${block.getFieldValue("NAME")}()\n`;
-
-    case "create_part":
-      return `local ${block.getFieldValue("NAME")} = Instance.new("Part")\n`;
-
-    case "set_color":
-      return `Part.Color = "${block.getFieldValue("COLOR")}"\n`;
-
-    case "chat_message":
-      return `print("[CHAT] ${block.getFieldValue("TEXT")}")\n`;
-
-    default:
-      return "";
-  }
+/* register plugin helper */
+function registerPlugin(type, handler){
+  Plugins[type] = handler;
 }
 
 /* =========================
-   HELPERS
+   DEFAULT LUA OUTPUT BUFFER
 ========================= */
 
-function indent(text){
-  return text
-    .split("\n")
-    .filter(l=>l.length)
-    .map(l=>"    "+l)
-    .join("\n") + "\n";
-}
-
-/* =========================
-   GENERATE
-========================= */
-
-function generateCode(){
-
+function compileToLuau(){
   let code = "";
 
   const blocks = workspace.getTopBlocks(true);
 
-  for(const b of blocks){
-    code += blockToLuau(b);
+  for(const block of blocks){
+    code += compileBlock(block);
   }
 
-  const out = document.getElementById("codeOutput");
-  if(out) out.textContent = code;
+  document.getElementById("codeOutput").textContent = code;
 
   return code;
 }
 
-workspace.addChangeListener(generateCode);
+/* =========================
+   BLOCK COMPILER
+========================= */
+
+function compileBlock(block){
+
+  if(!block) return "";
+
+  const plugin = Plugins[block.type];
+
+  if(plugin){
+    return plugin(block) + "\n";
+  }
+
+  return `-- Unknown block: ${block.type}\n`;
+}
+
+/* =========================
+   LIVE UPDATE
+========================= */
+
+workspace.addChangeListener(() => {
+  compileToLuau();
+});
 
 /* =========================
    EXPORT
 ========================= */
 
 function exportLuau(){
+  const code = compileToLuau();
 
-  const code = generateCode();
-
-  const blob = new Blob([code],{type:"text/plain"});
+  const blob = new Blob([code], {type:"text/plain"});
   const a = document.createElement("a");
 
   a.href = URL.createObjectURL(blob);
@@ -296,7 +90,7 @@ function exportLuau(){
 }
 
 /* =========================
-   SAVE / LOAD (UNCHANGED)
+   SAVE / LOAD (basic)
 ========================= */
 
 async function save(){
@@ -321,9 +115,10 @@ async function load(){
   const res = await fetch(`/load/${currentUser}`);
   const data = await res.json();
 
-  if(!data.xml) return log("No save");
+  if(!data.xml) return log("No project");
 
   workspace.clear();
+
   Blockly.Xml.domToWorkspace(
     Blockly.utils.xml.textToDom(data.xml),
     workspace
@@ -333,8 +128,205 @@ async function load(){
 }
 
 /* =========================
+   BLOCK DEFINITIONS
+========================= */
+
+Blockly.defineBlocksWithJsonArray([
+
+{
+  type:"print",
+  message0:"print %1",
+  args0:[{type:"field_input",name:"TEXT",text:"hello"}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:160
+},
+
+{
+  type:"set_var",
+  message0:"set %1 = %2",
+  args0:[
+    {type:"field_input",name:"NAME",text:"x"},
+    {type:"field_number",name:"VALUE",value:0}
+  ],
+  previousStatement:null,
+  nextStatement:null,
+  colour:230
+},
+
+{
+  type:"repeat",
+  message0:"repeat %1 times %2",
+  args0:[
+    {type:"field_number",name:"COUNT",value:5},
+    {type:"input_statement",name:"DO"}
+  ],
+  previousStatement:null,
+  nextStatement:null,
+  colour:60
+},
+
+{
+  type:"if",
+  message0:"if %1 then %2",
+  args0:[
+    {type:"field_input",name:"COND",text:"x > 5"},
+    {type:"input_statement",name:"DO"}
+  ],
+  previousStatement:null,
+  nextStatement:null,
+  colour:70
+},
+
+{
+  type:"function",
+  message0:"function %1 %2",
+  args0:[
+    {type:"field_input",name:"NAME",text:"MyFunc"},
+    {type:"input_statement",name:"BODY"}
+  ],
+  previousStatement:null,
+  nextStatement:null,
+  colour:290
+},
+
+{
+  type:"call",
+  message0:"call %1",
+  args0:[{type:"field_input",name:"NAME"}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:290
+},
+
+{
+  type:"part_create",
+  message0:"create part %1",
+  args0:[{type:"field_input",name:"NAME",text:"Part"}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:200
+},
+
+{
+  type:"chat",
+  message0:"chat %1",
+  args0:[{type:"field_input",name:"TEXT",text:"hello"}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:20
+},
+
+{
+  type:"wait",
+  message0:"wait %1 sec",
+  args0:[{type:"field_number",name:"TIME",value:1}],
+  previousStatement:null,
+  nextStatement:null,
+  colour:120
+}
+
+]);
+
+/* =========================
+   PLUGINS (THIS IS THE ENGINE POWER)
+========================= */
+
+/* OUTPUT */
+registerPlugin("print", b =>
+  `print("${b.getFieldValue("TEXT")}")`
+);
+
+/* VARIABLES */
+registerPlugin("set_var", b =>
+  `local ${b.getFieldValue("NAME")} = ${b.getFieldValue("VALUE")}`
+);
+
+/* WAIT */
+registerPlugin("wait", b =>
+  `task.wait(${b.getFieldValue("TIME")})`
+);
+
+/* REPEAT (IMPORTANT: child traversal) */
+registerPlugin("repeat", b => {
+
+  let body = "";
+  let child = b.getInputTargetBlock("DO");
+
+  while(child){
+    body += compileBlock(child);
+    child = child.getNextBlock();
+  }
+
+  return `for i = 1, ${b.getFieldValue("COUNT")} do
+${indent(body)}end`;
+});
+
+/* IF */
+registerPlugin("if", b => {
+
+  let body = "";
+  let child = b.getInputTargetBlock("DO");
+
+  while(child){
+    body += compileBlock(child);
+    child = child.getNextBlock();
+  }
+
+  return `if ${b.getFieldValue("COND")} then
+${indent(body)}end`;
+});
+
+/* FUNCTION */
+registerPlugin("function", b => {
+
+  let body = "";
+  let child = b.getInputTargetBlock("BODY");
+
+  while(child){
+    body += compileBlock(child);
+    child = child.getNextBlock();
+  }
+
+  return `function ${b.getFieldValue("NAME")}()
+${indent(body)}end`;
+});
+
+/* CALL */
+registerPlugin("call", b =>
+  `${b.getFieldValue("NAME")}()`
+);
+
+/* PART */
+registerPlugin("part_create", b => {
+  const name = b.getFieldValue("NAME");
+
+  return `
+local ${name} = Instance.new("Part")
+${name}.Parent = workspace
+`;
+});
+
+/* CHAT */
+registerPlugin("chat", b =>
+  `print("[CHAT] ${b.getFieldValue("TEXT")}")`
+);
+
+/* =========================
+   HELPERS
+========================= */
+
+function indent(text){
+  return text
+    .split("\n")
+    .filter(l => l.trim())
+    .map(l => "    " + l)
+    .join("\n") + "\n";
+}
+
+/* =========================
    START
 ========================= */
 
-generateCode();
-log("Luau Studio v1 Loaded");
+compileToLuau();
+log("Luau Plugin Engine v2 loaded");
