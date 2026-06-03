@@ -1,21 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Lua Learning Studio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jos3ph Luau Studio</title>
 
-  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
-  <script src="https://unpkg.com/blockly/lua.min.js"></script>
+<script src="https://unpkg.com/blockly/blockly.min.js"></script>
 
-  <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
 <header>
-  🧠 Lua Learning Studio
+  <h2>🧠 Jos3ph Luau Studio</h2>
 
-  <input id="user" placeholder="username">
-  <input id="pass" placeholder="password" type="password">
+  <input id="user" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
 
   <button onclick="login()">Login</button>
   <button onclick="registerUser()">Register</button>
@@ -27,13 +27,16 @@
 
   <div id="rightPanel">
 
-    <h3>📜 Lua Code</h3>
+    <h3>Generated Luau</h3>
+
     <pre id="codeOutput"></pre>
 
-    <button onclick="run()">Generate Lua</button>
-    <button onclick="exportLua()">Export .lua</button>
-    <button onclick="save()">Save</button>
-    <button onclick="load()">Load</button>
+    <div class="buttons">
+      <button onclick="generateCode()">Generate</button>
+      <button onclick="exportLuau()">Export .luau</button>
+      <button onclick="save()">Save</button>
+      <button onclick="load()">Load</button>
+    </div>
 
     <div id="console"></div>
 
@@ -41,17 +44,24 @@
 
 </div>
 
-<!-- TOOLBOX -->
 <xml id="toolbox" style="display:none">
 
-  <category name="Basics" colour="160">
-    <block type="text_print"></block>
-    <block type="create_sprite"></block>
-    <block type="move"></block>
+  <category name="Output" colour="160">
+    <block type="print_text"></block>
+  </category>
+
+  <category name="Variables" colour="230">
+    <block type="set_var"></block>
+  </category>
+
+  <category name="Control" colour="60">
+    <block type="repeat_times"></block>
+    <block type="wait_seconds"></block>
   </category>
 
 </xml>
 
 <script src="script.js"></script>
+
 </body>
 </html>
