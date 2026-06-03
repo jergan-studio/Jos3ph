@@ -14,19 +14,6 @@ function log(msg){
    AUTH
 ========================= */
 
-async function registerUser(){
-  const user = document.getElementById("user").value;
-  const pass = document.getElementById("pass").value;
-
-  await fetch("/register",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({user,pass})
-  });
-
-  log("Register attempt done");
-}
-
 async function login(){
   const user = document.getElementById("user").value;
   const pass = document.getElementById("pass").value;
@@ -88,7 +75,6 @@ function indent(text){
 ========================= */
 
 function compileToLuau(){
-
   let code = "";
 
   const blocks = workspace.getTopBlocks(true);
@@ -123,45 +109,7 @@ function exportLuau(){
 }
 
 /* =========================
-   SAVE / LOAD
-========================= */
-
-async function save(){
-  if(!currentUser) return log("Login first");
-
-  const xml = Blockly.Xml.domToText(
-    Blockly.Xml.workspaceToDom(workspace)
-  );
-
-  await fetch("/save",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({user:currentUser, xml})
-  });
-
-  log("Saved");
-}
-
-async function load(){
-  if(!currentUser) return log("Login first");
-
-  const res = await fetch(`/load/${currentUser}`);
-  const data = await res.json();
-
-  if(!data.xml) return log("No data");
-
-  workspace.clear();
-
-  Blockly.Xml.domToWorkspace(
-    Blockly.utils.xml.textToDom(data.xml),
-    workspace
-  );
-
-  log("Loaded");
-}
-
-/* =========================
-   BLOCK DEFINITIONS
+   BLOCKS
 ========================= */
 
 Blockly.defineBlocksWithJsonArray([
@@ -236,7 +184,7 @@ Blockly.defineBlocksWithJsonArray([
   colour:290
 },
 
-/* PARTS */
+/* PART */
 {
   type:"part_create",
   message0:"create part %1",
@@ -266,15 +214,25 @@ Blockly.defineBlocksWithJsonArray([
   colour:120
 },
 
-/* UI SYSTEM */
+/* =========================
+   EVENT: WHEN CLICKED
+========================= */
+
 {
-  type:"ui_screen",
-  message0:"create UI screen %1",
-  args0:[{type:"field_input",name:"NAME",text:"ScreenGui"}],
+  type:"when_clicked",
+  message0:"when %1 clicked do %2",
+  args0:[
+    {type:"field_input",name:"TARGET",text:"Button"},
+    {type:"input_statement",name:"DO"}
+  ],
   previousStatement:null,
   nextStatement:null,
-  colour:340
+  colour:10
 },
+
+/* =========================
+   UI
+========================= */
 
 {
   type:"ui_button",
@@ -303,7 +261,7 @@ Blockly.defineBlocksWithJsonArray([
    PLUGINS
 ========================= */
 
-/* OUTPUT */
+/* PRINT */
 registerPlugin("print", b =>
   `print("${b.getFieldValue("TEXT")}")`
 );
@@ -352,7 +310,8 @@ registerPlugin("function", b => {
   }
 
   return `function ${b.getFieldValue("NAME")}()
-${indent(body)}end`;
+${indent(body)}
+end`;
 });
 
 /* CALL */
@@ -372,25 +331,53 @@ registerPlugin("chat", b =>
   `print("[CHAT] ${b.getFieldValue("TEXT")}")`
 );
 
-/* UI SCREEN */
-registerPlugin("ui_screen", b => {
-  const n = b.getFieldValue("NAME");
-  return `local ${n} = Instance.new("ScreenGui")
-${n}.Parent = game.Players.LocalPlayer.PlayerGui`;
+/* WAIT */
+registerPlugin("wait", b =>
+  `task.wait(${b.getFieldValue("TIME")})`
+);
+
+/* =========================
+   🔥 CLICK EVENT (IMPORTANT FIX)
+========================= */
+
+registerPlugin("when_clicked", b => {
+
+  let body = "";
+  let child = b.getInputTargetBlock("DO");
+
+  while(child){
+    body += compileBlock(child);
+    child = child.getNextBlock();
+  }
+
+  const target = b.getFieldValue("TARGET");
+
+  return `
+-- when clicked event
+${target}.MouseButton1Click:Connect(function()
+${indent(body)}
+end)
+`;
 });
 
-/* UI BUTTON */
+/* =========================
+   UI
+========================= */
+
 registerPlugin("ui_button", b => {
   const n = b.getFieldValue("NAME");
-  return `local ${n} = Instance.new("TextButton")
+
+  return `
+local ${n} = Instance.new("TextButton")
 ${n}.Parent = game.Players.LocalPlayer.PlayerGui
-${n}.Text = "${n}"`;
+${n}.Text = "${n}"
+`;
 });
 
-/* UI TEXT */
 registerPlugin("ui_text", b => {
   const n = b.getFieldValue("NAME");
   const t = b.getFieldValue("TEXT");
+
   return `${n}.Text = "${t}"`;
 });
 
@@ -399,4 +386,4 @@ registerPlugin("ui_text", b => {
 ========================= */
 
 compileToLuau();
-log("Engine v2 ready");
+log("Engine ready with CLICK EVENTS");
